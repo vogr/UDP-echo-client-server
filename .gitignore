@@ -1,3 +1,5 @@
 fancy-client
 server
 objects/
+
+*.swp
