@@ -1,3 +1,7 @@
+#include <arpa/inet.h>
+#include <errno.h>
+#include <limits.h>
+#include <netinet/in.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +10,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "server.h"
+
 #define BUFFER_SIZE 2048
 #define MAX_SOCKS 20
 
@@ -13,10 +19,32 @@ int main(int argc, char *argv[]) {
   int ret = 0;
 
   if (argc < 2) {
-    fprintf(stderr, "Error: requires one argument\n\t./server IP_ADDRESS\n");
+    fprintf(stderr, "Error: requires one argument\n\t./server PORT\n");
     return EXIT_FAILURE;
   }
 
+  if (argv[1][0] == '\0') {
+    fprintf(stderr, "Error: port must not be empty.\n");
+    return EXIT_FAILURE;
+  }
+
+  char *end = NULL;
+  errno = 0;
+  long int port_int = strtol(argv[1], &end, 10);
+  if (errno) {
+    fprintf(stderr, "Invalid port:\n");
+    perror("strtol");
+    return EXIT_FAILURE;
+  }
+  else if (*end != '\0') {
+    fprintf(stderr, "Invalid port: some characters were not recognised as digits.\n");
+    return EXIT_FAILURE;
+  }
+  else if (port_int < 0 || port_int > USHRT_MAX) {
+    fprintf(stderr, "Invalid port: value is outside permitted range.\n");
+  }
+
+  unsigned short port = (unsigned short) port_int;
 
   /*
    * Implement a dual stack echo server using the ideas from
@@ -30,72 +58,41 @@ int main(int argc, char *argv[]) {
    * then the returned socket addresses will be suitable for bind(2)ing a
    * socket that  will  accept(2) connections.
    */
-  struct addrinfo hints = {
-    .ai_flags = AI_PASSIVE,    /* Bindable IP addresses */
-    .ai_family = AF_UNSPEC,
-    .ai_socktype = SOCK_DGRAM, /* UDP socket */
+
+  struct sockaddr_in6 addr = {
+    .sin6_family = AF_INET6,
+    .sin6_port = htons(port),
+    .sin6_addr = IN6ADDR_ANY_INIT,
   };
 
-  struct addrinfo *addresses_linked_list = NULL;
-  ret = getaddrinfo(
-      NULL,
-      argv[1],
-      &hints,
-      &addresses_linked_list
-  );
+
+  int sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+  if (sockfd == -1) {
+    perror("socket");
+    return EXIT_FAILURE;
+  }
+
+  int off = 0;
+  ret = setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off));
   if (ret != 0) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
-    exit(1);
+    char *address_repr = text_of((struct sockaddr *)&addr);
+    fprintf(stderr, "Warning: could not disable IPV6_V6ONLY flag on the socket for the address %s\n", address_repr);
+    perror("setsockopt IPV6_V6ONLY");
+    free(address_repr);
   }
 
-  int sockets[MAX_SOCKS] = {0};
-  int nsock = 0
-  const int on = 1; // for setsockopt IPV6_V6ONLY
-  struct addrinfo *address = NULL;
-  for (address = addresses_linked_list; address != NULL ; address = address->ai_next) {
-    if (nsock >= MAX_SOCKS) {
-      fprintf(stderr, "Warning: maximum number of sockets reached, will not try to bind the remaining addresses.\n");
-      break;
-    }
-    sockets[nsock] = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
-    if (sockets[nsock] == -1) {
-      // could not create socket
-      continue;
-    }
-
-    /* To prevent conflict with IPv4 adresses, set IPV6_V6ONLY on IPv6 addresses */
-    if (adress->ai_family == AF_INET6) {
-      ret = setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on, sizeof(on));
-      if (ret != 0) {
-        char *address_repr = text_of((struct sockaddr *)address);
-        fprintf(stderr, "Warning: could not set IPV6_V6ONLY flag on the socket for the address %s\n", address_repr)
-        perror("setsockopt IPV6_V6ONLY");
-        free(address_repr);
-      }
-    }
-
-    ret = bind(udp_socket, address->ai_addr, address->ai_addrlen);
-    if (ret != 0) {
-      char *address_repr = text_of((struct sockaddr *)address);
-      fprintf(stderr, "Could not bind address %s:\n", address_repr);
-      perror("bind");
-      free(address_repr);
-      close(sockets[nsock]);
-      continue;
-    }
-    nsock++;
+  ret = bind(sockfd, (struct sockaddr *) &addr, sizeof(addr));
+  if (ret != 0) {
+    char *address_repr = text_of((struct sockaddr *)&addr);
+    fprintf(stderr, "Could not bind address %s on port %s\n", address_repr, argv[1]);
+    perror("bind");
+    free(address_repr);
+    close(sockfd);
+    return EXIT_FAILURE;
   }
 
-  if (address == NULL) {
-    fprintf(stderr, "Initialization failed: could not bind to any of the addresses found.\n");
-    exit(1);
-  }
 
-  // The list of addresses is no longer required
-  freeaddrinfo(addresses_linked_list);
-
-
-  struct sockaddr from = {0};
+  struct sockaddr_storage from = {0};
   socklen_t from_len = sizeof(from);
   char buffer[BUFFER_SIZE] = {0};
   ssize_t bytes_read = 0;
@@ -103,14 +100,16 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     bytes_read = recvfrom(
-        udp_socket, buffer, BUFFER_SIZE, 0,
-        &from, &from_len
+        sockfd, buffer, BUFFER_SIZE, 0,
+        (struct sockaddr *)&from, &from_len
       );
     if (bytes_read < 0) {
       continue;
     }
 
-    fprintf(stderr, "Received bytes! Sending:\n");
+    char *address_repr = text_of((struct sockaddr *)&addr);
+    fprintf(stderr, "Received bytes from %s, will send them back:\n", address_repr);
+    free(address_repr);
     for(ssize_t i = 0; i < bytes_read; i++) {
       fprintf(stderr, "%c", buffer[i]);
     }
@@ -118,13 +117,13 @@ int main(int argc, char *argv[]) {
 
 
     bytes_sent = sendto(
-        udp_socket, buffer, (size_t)bytes_read, 0,
-        &from, from_len
+        sockfd, buffer, (size_t)bytes_read, 0,
+        (struct sockaddr *)&from, from_len
       );
     if (bytes_sent == -1) {
       perror("sendto");
     }
-    fprintf(stderr, "Received %zd, sent %zd\n", bytes_read, bytes_sent);
+    fprintf(stderr, "(Received %zd byte(s), sent back %zd byte(s))\n\n", bytes_read, bytes_sent);
 
   }
 

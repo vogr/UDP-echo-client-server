@@ -76,8 +76,9 @@ int main(int argc, char *argv[]) {
    * /!\ This implementation ignores parts of the input if it includes a null-terminator!
    *
    */
+  fprintf(stderr, "> ");
   while (fgets(buffer, BUFFER_SIZE, stdin) != NULL) {
-    bytes_to_send = strlen(buffer) + 1; //include null-terminator
+    bytes_to_send = strlen(buffer); //do not include the null-terminator added by fgets
     while (bytes_to_send > 0) {
       bytes_sent = write(
           udp_socket,
@@ -92,9 +93,9 @@ int main(int argc, char *argv[]) {
     }
 
 
-    fprintf(stderr,"Blocking for read...\n");
+    //fprintf(stderr,"Blocking for read...\n");
     bytes_received_ssize_t = read(udp_socket, buffer, BUFFER_SIZE);
-    fprintf(stderr,"Read done.\n");
+    //fprintf(stderr,"Read done.\n");
     if (bytes_received_ssize_t < 0) {
       fprintf(stderr, "Error: cannot read from UDP socket\n");
       perror("read");
@@ -102,11 +103,10 @@ int main(int argc, char *argv[]) {
     }
     bytes_received = (size_t)bytes_received_ssize_t;
 
-    printf("RECEIVED:\n");
     for (size_t i = 0; i < bytes_received; i++) {
       printf("%c", buffer[i]);
     }
-    printf("\nEND\n");
+    fprintf(stderr, "> ");
   }
 
   return EXIT_SUCCESS;
