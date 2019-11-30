@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
   ssize_t bytes_received_ssize_t = 0;
   size_t bytes_received = 0;
   /*
-   * /!\ This implementation ignores parts of the input if it includes a null-terminator!
+   * /!\ This implementation ignores parts of the input if it contains a null-terminator!
    *
    */
   fprintf(stderr, "> ");

@@ -23,28 +23,12 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  if (argv[1][0] == '\0') {
-    fprintf(stderr, "Error: port must not be empty.\n");
-    return EXIT_FAILURE;
-  }
 
-  char *end = NULL;
-  errno = 0;
-  long int port_int = strtol(argv[1], &end, 10);
-  if (errno) {
-    fprintf(stderr, "Invalid port:\n");
-    perror("strtol");
+  unsigned short port = 0;
+  ret = parse_port(argv[1], &port);
+  if (ret) {
     return EXIT_FAILURE;
   }
-  else if (*end != '\0') {
-    fprintf(stderr, "Invalid port: some characters were not recognised as digits.\n");
-    return EXIT_FAILURE;
-  }
-  else if (port_int < 0 || port_int > USHRT_MAX) {
-    fprintf(stderr, "Invalid port: value is outside permitted range.\n");
-  }
-
-  unsigned short port = (unsigned short) port_int;
 
   /*
    * Implement a dual stack echo server using the ideas from
@@ -90,6 +74,24 @@ int main(int argc, char *argv[]) {
     close(sockfd);
     return EXIT_FAILURE;
   }
+  
+  /*
+   * If the port entered on the commandline is 0, the OS
+   * will find a suitable free port.
+   * To report this port to the user, I use a snippet of
+   * code taken here:
+   * https://stackoverflow.com/a/4047837
+   */
+	socklen_t addrlen = sizeof(addr);
+	ret = getsockname(sockfd, (struct sockaddr *)&addr, &addrlen);
+	if (ret) {
+    fprintf(stderr, "Cannot dermine which port is being used.\n");
+	  perror("getsockname");
+  }
+  else {
+    fprintf(stderr, "Listening on port %d\n", ntohs(addr.sin6_port));
+  }
+
 
 
   struct sockaddr_storage from = {0};
@@ -130,6 +132,34 @@ int main(int argc, char *argv[]) {
   return EXIT_SUCCESS;
 }
 
+
+int parse_port(char *s, unsigned short *port) {
+  if (s[0] == '\0') {
+    fprintf(stderr, "Error: port must not be empty.\n");
+    return EXIT_FAILURE;
+  }
+  char *end = NULL;
+  errno = 0;
+  long int port_int = strtol(s, &end, 10);
+  if (errno) {
+    fprintf(stderr, "Invalid port:\n");
+    perror("strtol");
+    return 1;
+  }
+  else if (*end != '\0') {
+    fprintf(stderr, "Invalid port: some characters were not recognised as digits.\n");
+    return 1;
+  }
+  else if (port_int < 0 || port_int > USHRT_MAX) {
+    fprintf(stderr, "Invalid port: value is outside permitted range.\n");
+    return 1;
+  }
+
+  if (port != NULL) {
+    *port = (unsigned short) port_int;
+  }
+  return 0;
+}
 
 // La fonction utilitaire suivante vient du blog
 // https://www.bortzmeyer.org/bindv6only.html
