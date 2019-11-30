@@ -49,7 +49,8 @@ int main(int argc, char *argv[]) {
     // By connect()ing, we check that everything is correct and simplify the
     // calls to send and recv (instead of sendto and recvfrom).
     if (connect(udp_socket, address->ai_addr, address->ai_addrlen) != -1) {
-      // Connection successful!
+      // Connection successful! (There is no handshake with UDP: "connection" simply means that
+      // the fields are set for future read/write (or send/recv).
       break;
     }
     else {
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (address == NULL) {
-    fprintf(stderr, "Connection failed: could not connect using any of the addresses found.\n");
+    fprintf(stderr, "Connection failed: could not use any of the addresses found.\n");
     exit(1);
   }
 

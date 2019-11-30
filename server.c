@@ -32,15 +32,20 @@ int main(int argc, char *argv[]) {
 
   /*
    * Implement a dual stack echo server using the ideas from
-   * https://tools.ietf.org/html/rfc4038#section-6.3
-   * i.e. bind to all addresses returned by getaddrinfo (and setting
-   * IPV6_V6ONLY to prevent binding conflicts)
-   */
-
-  /* From `getaddrinfo` manpage:
-   * If the AI_PASSIVE flag is specified in hints.ai_flags, and node is NULL,
-   * then the returned socket addresses will be suitable for bind(2)ing a
-   * socket that  will  accept(2) connections.
+   * https://stackoverflow.com/a/46627140
+   * i.e. bind to a single IPV6 socket which will also handle
+   * IPv4 connections using a mapping mechanism: the kernel
+   * presents the IPv4 address as an IPv6 address and lets us
+   * manipulate it like any IPv6 address.
+   *
+   * Note: the alternative way would be to bind() to all addresses
+   * returned by getaddrinfo (get only bindable addresses with the
+   * AI_PASSIVE flag in the sockaddr hints), and to prevent the mapping
+   * mechanism by setting IPV6_V6ONLY on sockets for AF_INET6 addresses.
+   * The main loop would then rely on threading or on a polling mechanism.
+   * See
+   * https://tools.ietf.org/html/rfc4038
+   * for guidelines and motivations.
    */
 
   struct sockaddr_in6 addr = {
@@ -56,6 +61,13 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  /*
+   * Enable the IPv4 to IPv6 mapping mechanism by disabling IPV6_V6ONLY.
+   * Note: this flag is already off by default on most Linux ditributions.
+   * This section
+   * https://tools.ietf.org/html/rfc3493#section-5.3
+   * explains the IPV6_V6ONLY option and inspired the following lines.
+   */
   int off = 0;
   ret = setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off));
   if (ret != 0) {
@@ -106,12 +118,14 @@ int main(int argc, char *argv[]) {
         (struct sockaddr *)&from, &from_len
       );
     if (bytes_read < 0) {
+      // could not read
       continue;
     }
 
     char *address_repr = text_of((struct sockaddr *)&addr);
-    fprintf(stderr, "Received bytes from %s, will send them back:\n", address_repr);
+    fprintf(stderr, "Received bytes from %s, will send them back. Message received:\n", address_repr);
     free(address_repr);
+
     for(ssize_t i = 0; i < bytes_read; i++) {
       fprintf(stderr, "%c", buffer[i]);
     }
