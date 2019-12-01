@@ -54,7 +54,6 @@ int main(int argc, char *argv[]) {
     .sin6_addr = IN6ADDR_ANY_INIT,
   };
 
-
   int sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
   if (sockfd == -1) {
     perror("socket");
@@ -71,7 +70,7 @@ int main(int argc, char *argv[]) {
   int off = 0;
   ret = setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off));
   if (ret != 0) {
-    char *address_repr = text_of((struct sockaddr *)&addr);
+    char *address_repr = text_of_addr((struct sockaddr *)&addr);
     fprintf(stderr, "Warning: could not disable IPV6_V6ONLY flag on the socket for the address %s\n", address_repr);
     perror("setsockopt IPV6_V6ONLY");
     free(address_repr);
@@ -79,7 +78,7 @@ int main(int argc, char *argv[]) {
 
   ret = bind(sockfd, (struct sockaddr *) &addr, sizeof(addr));
   if (ret != 0) {
-    char *address_repr = text_of((struct sockaddr *)&addr);
+    char *address_repr = text_of_addr((struct sockaddr *)&addr);
     fprintf(stderr, "Could not bind address %s on port %s\n", address_repr, argv[1]);
     perror("bind");
     free(address_repr);
@@ -122,7 +121,7 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    char *address_repr = text_of((struct sockaddr *)&addr);
+    char *address_repr = text_of_addr((struct sockaddr *)&addr);
     fprintf(stderr, "Received bytes from %s, will send them back. Message received:\n", address_repr);
     free(address_repr);
 
@@ -179,8 +178,7 @@ int parse_port(char *s, unsigned short *port) {
 // https://www.bortzmeyer.org/bindv6only.html
 // Elle permet d'obtenir une représentation des addresses
 // IPv4 et IPv6.
-char * text_of(struct sockaddr *address)
-{
+char *text_of_addr(struct sockaddr *address) {
   /*
    * Get a string representation of an AI_INET or AI_INET6
    * sockaddr. The caller has to free the returned string.

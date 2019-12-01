@@ -6,6 +6,9 @@ SRC_FILES := server.c fancy-client.c
 # Choose between BUILD
 BUILD := release
 
+ARCHIVE := UDP_OGIER.tar.gz
+ARCHIVE_FILES := server.c server.h fancy-client.c Makefile
+
 ifeq ($(BUILD),debug)
 SUFFIX := .debug
 else ifeq ($(BUILD),release)
@@ -65,10 +68,12 @@ $(OBJECTS): $(OBJDIR)/%.o: %.c
 	@mkdir -p $(OBJDIR) $(DEPDIR)
 	$(CC) -c $< -o $@ $(CFLAGS) $(DEPFLAGS)
 
+archive: $(ARCHIVE_FILES)
+	tar caf $(ARCHIVE) $^
 
 .PHONY: clean
 clean:
-	rm -f $(NAMES)
+	rm -f $(NAMES) $(ARCHIVE)
 	if [ -d objects ]; then rm -r objects; fi
 
 DEPFILES := $(SRC_FILES:%.c=$(DEPDIR)/%.d)

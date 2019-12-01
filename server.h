@@ -2,6 +2,6 @@
 #define SERVER_H
 
 int parse_port(char*, unsigned short*);
-char *text_of(struct sockaddr *address);
+char *text_of_addr(struct sockaddr *address);
 
 #endif //SERVER_H
