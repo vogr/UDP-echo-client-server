@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
   int ret = 0;
 
   if (argc < 3) {
-    fprintf(stderr, "Error: requires two arguments\n\t./client IP_ADDRESS PORT_NUMBER\n");
+    fprintf(stderr, "client: requires two arguments\n\t./client <ADDRESS> <PORT_NUMBER>\n");
     return EXIT_FAILURE;
   }
 
@@ -92,6 +92,8 @@ int main(int argc, char *argv[]) {
    */
 
   char buffer[BUFFER_SIZE] = {0};
+
+  fprintf(stderr, "[client] Enter text below.\n");
   while (1) {
     int num_events = poll(pfds, nfds, -1);
     if (num_events == -1) {

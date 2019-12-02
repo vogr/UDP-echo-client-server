@@ -19,7 +19,9 @@ int main(int argc, char *argv[]) {
   int ret = 0;
 
   if (argc < 2) {
-    fprintf(stderr, "Error: requires one argument\n\t./server PORT\n");
+    fprintf(stderr,
+        "server: requires one argument\n"
+        "\t./server <PORT>\n");
     return EXIT_FAILURE;
   }
 
