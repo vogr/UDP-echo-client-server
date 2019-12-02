@@ -12,7 +12,7 @@
 
 #include "server.h"
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 4096
 #define MAX_SOCKS 20
 
 int main(int argc, char *argv[]) {
@@ -108,38 +108,45 @@ int main(int argc, char *argv[]) {
   struct sockaddr_storage from = {0};
   socklen_t from_len = sizeof(from);
   char buffer[BUFFER_SIZE] = {0};
-  ssize_t bytes_read = 0;
-  ssize_t bytes_sent = 0;
 
   while (1) {
-    bytes_read = recvfrom(
+    ssize_t recvfrom_ret = recvfrom(
         sockfd, buffer, BUFFER_SIZE, 0,
         (struct sockaddr *)&from, &from_len
       );
-    if (bytes_read < 0) {
+    if (recvfrom_ret < 0) {
       // could not read
       continue;
     }
+    size_t bytes_read = (size_t)recvfrom_ret;
 
     char *address_repr = text_of_addr((struct sockaddr *)&addr);
-    fprintf(stderr, "Received bytes from %s, will send them back. Message received:\n", address_repr);
+    fprintf(stderr, "[server] Received bytes from %s, will send them back. Message received:\n", address_repr);
     free(address_repr);
 
-    for(ssize_t i = 0; i < bytes_read; i++) {
-      fprintf(stderr, "%c", buffer[i]);
+    for(size_t i = 0; i < bytes_read; i++) {
+      if (buffer[i] == '\n')
+        fprintf(stderr, "\\n");
+      else
+        fprintf(stderr, "%c", buffer[i]);
     }
-    fprintf(stderr, "\nEND\n");
+    fprintf(stderr, "\n");
 
 
-    bytes_sent = sendto(
-        sockfd, buffer, (size_t)bytes_read, 0,
-        (struct sockaddr *)&from, from_len
-      );
-    if (bytes_sent == -1) {
-      perror("sendto");
+    size_t bytes_to_send = bytes_read;
+    size_t offset = 0;
+    while (bytes_to_send > 0) {
+      ssize_t sendto_ret = sendto(
+          sockfd, buffer + offset, bytes_to_send, 0,
+          (struct sockaddr *)&from, from_len
+        );
+      if (sendto_ret == -1) {
+        perror("sendto");
+      }
+      size_t bytes_sent = (size_t)sendto_ret;
+      offset += bytes_sent;
+      bytes_to_send -= bytes_sent;
     }
-    fprintf(stderr, "(Received %zd byte(s), sent back %zd byte(s))\n\n", bytes_read, bytes_sent);
-
   }
 
   return EXIT_SUCCESS;

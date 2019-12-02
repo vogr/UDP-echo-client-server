@@ -69,7 +69,7 @@ $(OBJECTS): $(OBJDIR)/%.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(DEPFLAGS)
 
 archive: $(ARCHIVE_FILES)
-	tar caf $(ARCHIVE) $^
+	tar caf $(ARCHIVE) --owner=0 --group=0 $^
 
 .PHONY: clean
 clean:
