@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
     }
     size_t bytes_read = (size_t)recvfrom_ret;
 
-    char *address_repr = text_of_addr((struct sockaddr *)&addr);
+    char *address_repr = text_of_addr((struct sockaddr *)&from);
     fprintf(stderr, "[server] Received bytes from %s, will send them back. Message received:\n", address_repr);
     free(address_repr);
 

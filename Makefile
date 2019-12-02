@@ -6,8 +6,11 @@ SRC_FILES := server.c fancy-client.c
 # Choose between BUILD
 BUILD := release
 
-ARCHIVE := UDP_OGIER.tar.gz
-ARCHIVE_FILES := server.c server.h fancy-client.c Makefile
+ARCHIVE := UDP_OGIER.zip
+ARCHIVE_FILES := \
+	server.c server.h \
+	fancy-client.c \
+	README.md Makefile
 
 ifeq ($(BUILD),debug)
 SUFFIX := .debug
@@ -23,7 +26,7 @@ endif
 
 OBJDIR := objects
 OBJECTS := $(SRC_FILES:%.c=$(OBJDIR)/%.o)
-# Auto dependency genereation for gcc (see http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/)
+# Auto dependency generation for gcc (see http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/)
 DEPDIR := $(OBJDIR)/deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
@@ -68,8 +71,10 @@ $(OBJECTS): $(OBJDIR)/%.o: %.c
 	@mkdir -p $(OBJDIR) $(DEPDIR)
 	$(CC) -c $< -o $@ $(CFLAGS) $(DEPFLAGS)
 
-archive: $(ARCHIVE_FILES)
-	tar caf $(ARCHIVE) --owner=0 --group=0 $^
+.PHONY: archive
+archive: $(ARCHIVE)
+$(ARCHIVE): $(ARCHIVE_FILES)
+	zip $@ $^
 
 .PHONY: clean
 clean:
