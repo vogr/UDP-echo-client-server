@@ -8,13 +8,13 @@ all: $(NAMES)
 
 .PHONY: server
 server:
-	(cd src_server && $(MAKE))
+	$(MAKE) -C src_server
 	cp src_server/server .
 
 .PHONY: client
 server:
 client:
-	(cd src_client && $(MAKE))
+	$(MAKE) -C src_client
 	cp src_client/client .
 
 .PHONY: archive
@@ -24,5 +24,5 @@ archive: clean
 .PHONY: clean
 clean:
 	rm -f $(ARCHIVE) $(NAMES)
-	(cd src_server && $(MAKE) clean)
-	(cd src_client && $(MAKE) clean)
+	$(MAKE) -C src_server clean
+	$(MAKE) -C src_client clean
