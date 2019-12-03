@@ -48,11 +48,9 @@ int main(int argc, char *argv[]) {
 
     // We use connect() on a UDP socket. Some motivations are written here:
     // http://www.masterraghu.com/subjects/np/introduction/unix_network_programming_v1.3/ch08lev1sec11.html
-    // By connect()ing, we check that everything is correct and simplify the
-    // calls to send and recv (instead of sendto and recvfrom).
     if (connect(udp_socket, address->ai_addr, address->ai_addrlen) != -1) {
-      // Connection successful! (There is no handshake with UDP: "connection" simply means that
-      // the fields are set for future read/write (or send/recv).
+      // Success. There is no handshake with UDP: a successful connect() simply means that
+      // the route lookup was successful and that the fields are set for future read/write (or send/recv).
       break;
     }
     else {
