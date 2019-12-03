@@ -9,64 +9,20 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "client.h"
 
 #define BUFFER_SIZE 4096
 
 int main(int argc, char *argv[]) {
-  int ret = 0;
-
   if (argc < 3) {
     fprintf(stderr, "client: requires two arguments\n\t./client <ADDRESS> <PORT_NUMBER>\n");
     return EXIT_FAILURE;
   }
 
-  struct addrinfo hints = {
-    .ai_family = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
-    .ai_socktype = SOCK_DGRAM, /* UDP socket */
-  };
-
-  struct addrinfo *addresses_linked_list = NULL;
-  ret = getaddrinfo(
-      argv[1],
-      argv[2],
-      &hints,
-      &addresses_linked_list
-  );
-  if (ret != 0) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
-    exit(1);
+  int udp_socket = get_udp_socket(argv[1], argv[2]);
+  if (udp_socket < 0) {
+    fprintf(stderr, "Connection failed: could not create UDP socket\n");
   }
-
-  struct addrinfo *address = NULL;
-  int udp_socket = -1;
-  for (address = addresses_linked_list; address != NULL; address = address->ai_next) {
-    udp_socket = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
-    if (udp_socket == -1) {
-      // could not create socket
-      continue;
-    }
-
-    // We use connect() on a UDP socket. Some motivations are written here:
-    // http://www.masterraghu.com/subjects/np/introduction/unix_network_programming_v1.3/ch08lev1sec11.html
-    if (connect(udp_socket, address->ai_addr, address->ai_addrlen) != -1) {
-      // Success. There is no handshake with UDP: a successful connect() simply means that
-      // the route lookup was successful and that the fields are set for future read/write (or send/recv).
-      break;
-    }
-    else {
-      close(udp_socket);
-      udp_socket = -1;
-    }
-  }
-
-  if (address == NULL) {
-    fprintf(stderr, "Connection failed: could not use any of the addresses found.\n");
-    exit(1);
-  }
-
-  // The list of addresses is no longer required
-  freeaddrinfo(addresses_linked_list);
-
 
   /*
    * Info and inspiration for poll() taken from
@@ -162,4 +118,59 @@ int main(int argc, char *argv[]) {
   }
 
   return EXIT_SUCCESS;
+}
+
+
+/*
+ * Returns a socket file descriptor able to send UDP data to address
+ * `node` at port `service` over UDP.
+ *
+ * A negative value signals an error.
+ *
+ */
+int get_udp_socket(const char *node, const char *service) {
+  struct addrinfo hints = {
+    .ai_family = AF_UNSPEC,    /* Allow IPv4 or IPv6 */
+    .ai_socktype = SOCK_DGRAM, /* UDP socket */
+  };
+
+  struct addrinfo *addresses_linked_list = NULL;
+  int ret = getaddrinfo(
+      node,
+      service,
+      &hints,
+      &addresses_linked_list
+  );
+  if (ret != 0) {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
+    return -1;
+  }
+
+  int udp_socket = -1;
+  for (struct addrinfo *address = addresses_linked_list; address != NULL; address = address->ai_next) {
+    udp_socket = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
+    if (udp_socket == -1) {
+      // could not create socket
+      continue;
+    }
+
+    // We use connect() on a UDP socket. Some motivations are written here:
+    // http://www.masterraghu.com/subjects/np/introduction/unix_network_programming_v1.3/ch08lev1sec11.html
+    if (connect(udp_socket, address->ai_addr, address->ai_addrlen) != -1) {
+      // Success. There is no handshake with UDP: a successful connect() simply means that
+      // the route lookup was successful and that the fields are set for future read/write (or send/recv).
+      break;
+    }
+    else {
+      close(udp_socket);
+      udp_socket = -1;
+    }
+  }
+
+  // Note: if we reach the end of the list (address = NULL),  then udp_socket = -1 will signal the error.
+
+  // The list of addresses is no longer required
+  freeaddrinfo(addresses_linked_list);
+  return udp_socket;
+
 }
