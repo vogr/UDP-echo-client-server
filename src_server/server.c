@@ -13,7 +13,6 @@
 #include "server.h"
 
 #define BUFFER_SIZE 4096
-#define MAX_SOCKS 20
 
 int main(int argc, char *argv[]) {
   int ret = 0;
