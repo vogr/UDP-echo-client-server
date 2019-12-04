@@ -134,19 +134,16 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "\n");
 
 
-    size_t bytes_to_send = bytes_read;
-    size_t offset = 0;
-    while (bytes_to_send > 0) {
-      ssize_t sendto_ret = sendto(
-          sockfd, buffer + offset, bytes_to_send, 0,
-          (struct sockaddr *)&from, from_len
-        );
-      if (sendto_ret == -1) {
-        perror("sendto");
-      }
-      size_t bytes_sent = (size_t)sendto_ret;
-      offset += bytes_sent;
-      bytes_to_send -= bytes_sent;
+    /*
+     * UDP send is all or nothing, no
+     * need to loop
+     */
+    ssize_t sendto_ret = sendto(
+        sockfd, buffer, bytes_read, 0,
+        (struct sockaddr *)&from, from_len
+      );
+    if (sendto_ret == -1) {
+      perror("sendto");
     }
   }
 

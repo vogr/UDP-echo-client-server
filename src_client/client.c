@@ -76,19 +76,14 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
       }
       size_t bytes_to_send = (size_t)read_ret;
-      size_t offset = 0;
-      while (bytes_to_send > 0) {
-        ssize_t bytes_sent = write(
-            udp_socket,
-            buffer + offset, bytes_to_send
-            );
-        if (bytes_sent < 0) {
-          fprintf(stderr, "Error: cannot write to UDP socket\n");
-          perror("write");
-          return EXIT_FAILURE;
-        }
-        bytes_to_send -= (size_t)bytes_sent;
-        offset += (size_t)bytes_sent;
+      ssize_t write_ret = write(
+          udp_socket,
+          buffer, bytes_to_send
+          );
+      if (write_ret < 0) {
+        fprintf(stderr, "Error: cannot write to UDP socket\n");
+        perror("write");
+        return EXIT_FAILURE;
       }
     }
     if (pfds[1].revents & (POLLHUP | POLLERR | POLLNVAL)) {
