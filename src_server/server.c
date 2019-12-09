@@ -152,6 +152,8 @@ int main(int argc, char *argv[]) {
 
 
 int parse_port(char *s, unsigned short *port) {
+  // The following lines are greatly inspired by the example
+  // in `man strtol(3)`.
   if (s[0] == '\0') {
     fprintf(stderr, "Error: port must not be empty.\n");
     return EXIT_FAILURE;

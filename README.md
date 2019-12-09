@@ -70,7 +70,7 @@ If you've heard this story before, don't stop me, because I'd like to hear it ag
 
 ## Technical notes
 
-* The client is able to send packets over IPv4 and IPv6. The preferred protocol is not defined however, the first successful connection using an address returned by `getaddrinfo` will determine the protocol used.
+* The client is able to send packets over IPv4 and IPv6. The preferred protocol is not defined however, the first address returned by `getaddrinfo` will determine the protocol used.
 * The client uses `poll()` to monitor both stdin and the UDP socket. When any of these two streams can be read, it processes the new data.
 * The server uses a single IPv6 socket to communicate with both IPv4 and IPv6 clients. It relies of the in-kernel mapping mechanism which presents IPv4 addresses as IPv6 addresses on the socket. See [RFC 3493 §3.7](https://tools.ietf.org/html/rfc3493#section-3.7) and [RFC 3493 §5.3](https://tools.ietf.org/html/rfc3493#section-5.3) for details.
 

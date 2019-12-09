@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
       // stdin is ready for read
 
       /* fgets() and fread() buffer the input ; this does not work very well
-       * with poll (the data is not printed as soon as it is received).
+       * with poll (a fread() might block even if data is available).
        * We will use read().
        */
       ssize_t read_ret = read(STDIN_FILENO, buffer, BUFFER_SIZE);
