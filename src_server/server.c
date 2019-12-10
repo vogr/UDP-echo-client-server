@@ -12,7 +12,7 @@
 
 #include "server.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 1024
 
 int main(int argc, char *argv[]) {
   int ret = 0;

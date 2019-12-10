@@ -11,7 +11,13 @@
 
 #include "client.h"
 
-#define BUFFER_SIZE 4096
+// Define a small packet size to prevent IP fragmentation
+// Packet sizes under 1500 are reasonable. The packet size
+// will be equal to the size of the buffer + the size of
+// the headers.
+// https://blog.cloudflare.com/ip-fragmentation-is-broken/
+// gives an interseting analysis of the issue.
+#define BUFFER_SIZE 1024
 
 int main(int argc, char *argv[]) {
   if (argc < 3) {
@@ -28,9 +34,9 @@ int main(int argc, char *argv[]) {
    * Info and inspiration for poll() taken from
    * https://beej.us/guide/bgnet/html/#poll
    *
-   * /!\ This implementation ignores parts of the input if it contains a null-terminator!
-   *
    */
+
+  // The client expects 
   struct pollfd pfds[] =
     {
       {.fd = STDIN_FILENO, .events = POLLIN},    // stdin
